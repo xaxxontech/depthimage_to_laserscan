@@ -86,20 +86,23 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   cam_model_.fromCameraInfo(info_msg);
   
   // Calculate angle_min and angle_max by measuring angles between the left ray, right ray, and optical center ray
-  cv::Point2d raw_pixel_left(0, cam_model_.cy());
-  cv::Point2d rect_pixel_left = cam_model_.rectifyPoint(raw_pixel_left);
-  cv::Point3d left_ray = cam_model_.projectPixelTo3dRay(rect_pixel_left);
+//  cv::Point2d raw_pixel_left(0, cam_model_.cy());
+//  cv::Point2d rect_pixel_left = cam_model_.rectifyPoint(raw_pixel_left);
+//  cv::Point3d left_ray = cam_model_.projectPixelTo3dRay(rect_pixel_left);
+//
+//  cv::Point2d raw_pixel_right(depth_msg->width-1, cam_model_.cy());
+//  cv::Point2d rect_pixel_right = cam_model_.rectifyPoint(raw_pixel_right);
+//  cv::Point3d right_ray = cam_model_.projectPixelTo3dRay(rect_pixel_right);
+//
+//  cv::Point2d raw_pixel_center(cam_model_.cx(), cam_model_.cy());
+//  cv::Point2d rect_pixel_center = cam_model_.rectifyPoint(raw_pixel_center);
+//  cv::Point3d center_ray = cam_model_.projectPixelTo3dRay(rect_pixel_center);
+//
+//  double angle_max = angle_between_rays(left_ray, center_ray);
+//  double angle_min = -angle_between_rays(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
   
-  cv::Point2d raw_pixel_right(depth_msg->width-1, cam_model_.cy());
-  cv::Point2d rect_pixel_right = cam_model_.rectifyPoint(raw_pixel_right);
-  cv::Point3d right_ray = cam_model_.projectPixelTo3dRay(rect_pixel_right);
-  
-  cv::Point2d raw_pixel_center(cam_model_.cx(), cam_model_.cy());
-  cv::Point2d rect_pixel_center = cam_model_.rectifyPoint(raw_pixel_center);
-  cv::Point3d center_ray = cam_model_.projectPixelTo3dRay(rect_pixel_center);
-  
-  double angle_max = angle_between_rays(left_ray, center_ray);
-  double angle_min = -angle_between_rays(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
+  double angle_max = 0.506145483;
+  double angle_min = -0.506145483;
   
   // Fill in laserscan message
   sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
@@ -116,11 +119,11 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   scan_msg->range_max = range_max_;
   
   // Check scan_height vs image_height
-  if(scan_height_/2 > cam_model_.cy() || scan_height_/2 > depth_msg->height - cam_model_.cy()){
-    std::stringstream ss;
-    ss << "scan_height ( " << scan_height_ << " pixels) is too large for the image height.";
-    throw std::runtime_error(ss.str());
-  }
+//  if(scan_height_/2 > cam_model_.cy() || scan_height_/2 > depth_msg->height - cam_model_.cy()){
+//    std::stringstream ss;
+//    ss << "scan_height ( " << scan_height_ << " pixels) is too large for the image height.";
+//    throw std::runtime_error(ss.str());
+//  }
 
   // Calculate and fill the ranges
   uint32_t ranges_size = depth_msg->width;
