@@ -29,6 +29,7 @@
 
 /* 
  * Author: Chad Rockey
+ * Modified by: Colin Adamson
  */
 
 #ifndef DEPTH_IMAGE_TO_LASERSCAN
@@ -112,6 +113,24 @@ public:
 	 */
 	void set_output_frame(const std::string output_frame_id);
 
+
+	// floorplane detect dynamic params
+
+	/**
+	 * Enables/disables floor plane obstacle detection
+	 *
+	 * @param floorplane_scan_enable
+	 */
+	void set_floorplane_scan_enable(const bool floorplane_scan_enable);
+
+	void set_image_ignore_ratio(const float image_ignore_ratio);
+
+	void set_frame_z(const float frame_z);
+
+	void set_floorplane_obstacle_height(const float floorplane_obstacle_height);
+
+	void set_floorplane_cliff_depth(const float floorplane_cliff_depth);
+
 private:
 	/**
 	 * Computes euclidean length of a cv::Point3d (as a ray from origin)
@@ -169,7 +188,7 @@ private:
 	 */
 	template<typename T>
 	void convert(const sensor_msgs::ImageConstPtr& depth_msg, const image_geometry::PinholeCameraModel& cam_model,
-			const sensor_msgs::LaserScanPtr& scan_msg, const int& scan_height) const {
+			const sensor_msgs::LaserScanPtr& scan_msg, const int& scan_height, const float& camFOVy) const {
 		// Use correct principal point from calibration
 		float center_x = cam_model.cx();
 		float center_y = cam_model.cy();
@@ -186,14 +205,12 @@ private:
 		int offset = (int) (cam_model.cy() - scan_height / 2);
 		depth_row += offset * row_step; // Offset to center of image
 
-//		const int vmax = offset + scan_height_; // original setup, horiz only
-		const int vmax = depth_msg->height; // adds potential floor plane
-		const int vfpstart = (int) (depth_msg->height * 0.675);
+//		const float camFOVy = 0.785398163; // 45 deg  TODO: set once from info
 
-		const float camFOVy = 0.785398163; // 45 deg  TODO: set once from info
-		const float depthCamVertDistfromFloor = 0.29; // TODO: get from tf
-		const float obstacleHeight = 0.075; // (includes angle tolerance)  // TODO: add to dynamic params
-		const float holeDepth = 0.075; // (includes angle tolerance)  // TODO: add to dynamic params
+		int vmax = offset + scan_height_;
+		if (floorplane_scan_enable_)  vmax = depth_msg->height; // adds potential floor plane
+
+		const int vfpstart = (int) (depth_msg->height * image_ignore_ratio_);
 
 		for (int v = offset; v < vmax; v++, depth_row += row_step) {
 
@@ -222,8 +239,8 @@ private:
 					// floor plane
 					if (v >= vfpstart) {
 						double yAngle = (v - center_y) * camFOVy/depth_msg->height;
-						float fpMin = (depthCamVertDistfromFloor-obstacleHeight)/sin(yAngle);
-						float fpMax = (depthCamVertDistfromFloor+holeDepth)/sin(yAngle);
+						float fpMin = (frame_z_ - floorplane_obstacle_height_) / sin(yAngle);
+						float fpMax = (frame_z_ + floorplane_cliff_depth_) / sin(yAngle);
 						if (r>fpMin && r<fpMax)
 							continue;  // is within floor plane, so skip use_point
 						else if (r < fpMin) r = fpMin;
@@ -247,6 +264,13 @@ private:
 	float range_max_; ///< Stores the current maximum range to use.
 	int scan_height_; ///< Number of pixel rows to use when producing a laserscan from an area.
 	std::string output_frame_id_; ///< Output frame_id for each laserscan.  This is likely NOT the camera's frame_id.
+
+	bool floorplane_scan_enable_;
+	float image_ignore_ratio_;
+	float frame_z_;
+	float floorplane_obstacle_height_;
+	float floorplane_cliff_depth_;
+
 };
 
 }

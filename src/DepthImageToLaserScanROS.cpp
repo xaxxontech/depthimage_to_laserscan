@@ -88,4 +88,12 @@ void DepthImageToLaserScanROS::reconfigureCb(depthimage_to_laserscan::DepthConfi
     dtl_.set_range_limits(config.range_min, config.range_max);
     dtl_.set_scan_height(config.scan_height);
     dtl_.set_output_frame(config.output_frame_id);
+
+    dtl_.set_floorplane_scan_enable(config.floorplane_scan_enable);
+    dtl_.set_image_ignore_ratio(config.image_ignore_ratio);
+    dtl_.set_frame_z(config.frame_z);
+    dtl_.set_floorplane_obstacle_height(config.floorplane_obstacle_height);
+    dtl_.set_floorplane_cliff_depth(config.floorplane_cliff_depth);
+
 }
+

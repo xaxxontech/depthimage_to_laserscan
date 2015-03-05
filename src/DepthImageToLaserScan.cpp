@@ -85,25 +85,33 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   // Set camera model
   cam_model_.fromCameraInfo(info_msg);
   
-  // Calculate angle_min and angle_max by measuring angles between the left ray, right ray, and optical center ray
-//  cv::Point2d raw_pixel_left(0, cam_model_.cy());
-//  cv::Point2d rect_pixel_left = cam_model_.rectifyPoint(raw_pixel_left);
-//  cv::Point3d left_ray = cam_model_.projectPixelTo3dRay(rect_pixel_left);
-//
-//  cv::Point2d raw_pixel_right(depth_msg->width-1, cam_model_.cy());
-//  cv::Point2d rect_pixel_right = cam_model_.rectifyPoint(raw_pixel_right);
-//  cv::Point3d right_ray = cam_model_.projectPixelTo3dRay(rect_pixel_right);
-//
-//  cv::Point2d raw_pixel_center(cam_model_.cx(), cam_model_.cy());
-//  cv::Point2d rect_pixel_center = cam_model_.rectifyPoint(raw_pixel_center);
-//  cv::Point3d center_ray = cam_model_.projectPixelTo3dRay(rect_pixel_center);
-//
-//  double angle_max = angle_between_rays(left_ray, center_ray);
-//  double angle_min = -angle_between_rays(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
+//   Calculate angle_min and angle_max by measuring angles between the left ray, right ray, and optical center ray
+  cv::Point2d raw_pixel_left(0, cam_model_.cy());
+  cv::Point2d rect_pixel_left = cam_model_.rectifyPoint(raw_pixel_left);
+  cv::Point3d left_ray = cam_model_.projectPixelTo3dRay(rect_pixel_left);
+
+  cv::Point2d raw_pixel_right(depth_msg->width-1, cam_model_.cy());
+  cv::Point2d rect_pixel_right = cam_model_.rectifyPoint(raw_pixel_right);
+  cv::Point3d right_ray = cam_model_.projectPixelTo3dRay(rect_pixel_right);
+
+  cv::Point2d raw_pixel_center(cam_model_.cx(), cam_model_.cy());
+  cv::Point2d rect_pixel_center = cam_model_.rectifyPoint(raw_pixel_center);
+  cv::Point3d center_ray = cam_model_.projectPixelTo3dRay(rect_pixel_center);
+
+  double angle_max = angle_between_rays(left_ray, center_ray);
+  double angle_min = -angle_between_rays(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
   
-  double angle_max = 0.506145483;
-  double angle_min = -0.506145483;
+  // Calculate vertical field of view angle
+  cv::Point2d raw_pixel_top(0, cam_model_.cx());
+  cv::Point2d rect_pixel_top = cam_model_.rectifyPoint(raw_pixel_top);
+  cv::Point3d top_ray = cam_model_.projectPixelTo3dRay(rect_pixel_top);
+
+  cv::Point2d raw_pixel_bottom(depth_msg->height-1, cam_model_.cx());
+  cv::Point2d rect_pixel_bottom = cam_model_.rectifyPoint(raw_pixel_bottom);
+  cv::Point3d bottom_ray = cam_model_.projectPixelTo3dRay(rect_pixel_bottom);
   
+  double camFOVy = angle_between_rays(top_ray, bottom_ray);
+
   // Fill in laserscan message
   sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
   scan_msg->header = depth_msg->header;
@@ -118,12 +126,12 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   scan_msg->range_min = range_min_;
   scan_msg->range_max = range_max_;
   
-  // Check scan_height vs image_height
-//  if(scan_height_/2 > cam_model_.cy() || scan_height_/2 > depth_msg->height - cam_model_.cy()){
-//    std::stringstream ss;
-//    ss << "scan_height ( " << scan_height_ << " pixels) is too large for the image height.";
-//    throw std::runtime_error(ss.str());
-//  }
+//   Check scan_height vs image_height
+  if(scan_height_/2 > cam_model_.cy() || scan_height_/2 > depth_msg->height - cam_model_.cy()){
+    std::stringstream ss;
+    ss << "scan_height ( " << scan_height_ << " pixels) is too large for the image height.";
+    throw std::runtime_error(ss.str());
+  }
 
   // Calculate and fill the ranges
   uint32_t ranges_size = depth_msg->width;
@@ -131,11 +139,11 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   
   if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
   {
-    convert<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_);
+    convert<uint16_t>(depth_msg, cam_model_, scan_msg, scan_height_, camFOVy);
   }
   else if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_32FC1)
   {
-    convert<float>(depth_msg, cam_model_, scan_msg, scan_height_);
+    convert<float>(depth_msg, cam_model_, scan_msg, scan_height_, camFOVy);
   }
   else
   {
@@ -163,3 +171,28 @@ void DepthImageToLaserScan::set_scan_height(const int scan_height){
 void DepthImageToLaserScan::set_output_frame(const std::string output_frame_id){
   output_frame_id_ = output_frame_id;
 }
+
+
+
+void DepthImageToLaserScan::set_floorplane_scan_enable(const bool floorplane_scan_enable){
+	floorplane_scan_enable_ = floorplane_scan_enable;
+}
+
+void DepthImageToLaserScan::set_image_ignore_ratio(const float image_ignore_ratio){
+	image_ignore_ratio_ = image_ignore_ratio;
+}
+
+void DepthImageToLaserScan::set_frame_z(const float frame_z) {
+	frame_z_ = frame_z;
+}
+
+void DepthImageToLaserScan::set_floorplane_obstacle_height(const float floorplane_obstacle_height) {
+	floorplane_obstacle_height_ = floorplane_obstacle_height;
+}
+
+void DepthImageToLaserScan::set_floorplane_cliff_depth(const float floorplane_cliff_depth) {
+	floorplane_cliff_depth_ = floorplane_cliff_depth;
+}
+
+
+
