@@ -131,6 +131,9 @@ public:
 
 	void set_floorplane_cliff_depth(const float floorplane_cliff_depth);
 
+	void set_horiz_angle_offset(const float horiz_angle_offset);
+
+
 private:
 	/**
 	 * Computes euclidean length of a cv::Point3d (as a ray from origin)
@@ -202,10 +205,10 @@ private:
 		const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
 		int row_step = depth_msg->step / sizeof(T);
 
-		int offset = (int) (cam_model.cy() - scan_height / 2);
+		int offset = (int) (center_y - scan_height / 2);
 		depth_row += offset * row_step; // Offset to center of image
 
-//		const float camFOVy = 0.785398163; // 45 deg  TODO: set once from info
+//		const float camFOVy = 0.785398163; // 45 horiz_angle_offset_deg  TODO: set once from info
 
 		int vmax = offset + scan_height_;
 		if (floorplane_scan_enable_)  vmax = depth_msg->height; // adds potential floor plane
@@ -233,20 +236,23 @@ private:
 					double x = (u - center_x) * depth * constant_x;
 					double z = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);
 
-					// Calculate actual distance
-					r = sqrt(pow(x, 2.0) + pow(z, 2.0));
-
 					// floor plane
 					if (v >= vfpstart) {
 						double yAngle = (v - center_y) * camFOVy/depth_msg->height;
+						yAngle += horiz_angle_offset_;
 						float fpMin = (frame_z_ - floorplane_obstacle_height_) / sin(yAngle);
 						float fpMax = (frame_z_ + floorplane_cliff_depth_) / sin(yAngle);
-						if (r>fpMin && r<fpMax)
+						if (z>fpMin && z<fpMax)
 							continue;  // is within floor plane, so skip use_point
-						else if (r < fpMin) r = fpMin;
-						else if (r > fpMax) r = fpMax;
+						else if (z < fpMin) z = fpMin;
+						else if (z > fpMax) z = fpMax;
 
 					}
+
+					// Calculate actual distance
+					r = sqrt(pow(x, 2.0) + pow(z, 2.0));
+
+
 				}
 
 				// Determine if this point should be used.
@@ -270,6 +276,7 @@ private:
 	float frame_z_;
 	float floorplane_obstacle_height_;
 	float floorplane_cliff_depth_;
+	float horiz_angle_offset_;
 
 };
 

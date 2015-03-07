@@ -94,6 +94,6 @@ void DepthImageToLaserScanROS::reconfigureCb(depthimage_to_laserscan::DepthConfi
     dtl_.set_frame_z(config.frame_z);
     dtl_.set_floorplane_obstacle_height(config.floorplane_obstacle_height);
     dtl_.set_floorplane_cliff_depth(config.floorplane_cliff_depth);
-
+    dtl_.set_horiz_angle_offset(config.horiz_angle_offset);
 }
 

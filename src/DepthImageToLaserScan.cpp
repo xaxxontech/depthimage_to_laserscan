@@ -100,6 +100,8 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
 
   double angle_max = angle_between_rays(left_ray, center_ray);
   double angle_min = -angle_between_rays(center_ray, right_ray); // Negative because the laserscan message expects an opposite rotation of that from the depth image
+//  double angle_max = 0.506145483;
+//    double angle_min = -0.506145483;
   
   // Calculate vertical field of view angle
   cv::Point2d raw_pixel_top(0, cam_model_.cx());
@@ -109,8 +111,9 @@ sensor_msgs::LaserScanPtr DepthImageToLaserScan::convert_msg(const sensor_msgs::
   cv::Point2d raw_pixel_bottom(depth_msg->height-1, cam_model_.cx());
   cv::Point2d rect_pixel_bottom = cam_model_.rectifyPoint(raw_pixel_bottom);
   cv::Point3d bottom_ray = cam_model_.projectPixelTo3dRay(rect_pixel_bottom);
-  
+
   double camFOVy = angle_between_rays(top_ray, bottom_ray);
+//  float camFOVy = 0.785398163;
 
   // Fill in laserscan message
   sensor_msgs::LaserScanPtr scan_msg(new sensor_msgs::LaserScan());
@@ -194,5 +197,7 @@ void DepthImageToLaserScan::set_floorplane_cliff_depth(const float floorplane_cl
 	floorplane_cliff_depth_ = floorplane_cliff_depth;
 }
 
-
+void DepthImageToLaserScan::set_horiz_angle_offset(const float horiz_angle_offset) {
+	horiz_angle_offset_ = horiz_angle_offset;
+}
 
